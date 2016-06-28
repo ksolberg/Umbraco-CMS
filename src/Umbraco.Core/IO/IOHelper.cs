@@ -4,8 +4,10 @@ using System.Globalization;
 using System.Reflection;
 using System.IO;
 using System.Configuration;
+using System.Linq;
 using System.Web;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web.Hosting;
 using ICSharpCode.SharpZipLib.Zip;
 using Umbraco.Core.Configuration;
@@ -34,6 +36,7 @@ namespace Umbraco.Core.IO
 	        string tempDir = unPackDirectory;
 	        Directory.CreateDirectory(tempDir);
 
+            //TODO: Get rid of SharpZipLib library
 	        using (ZipInputStream s = new ZipInputStream(File.OpenRead(zipFilePath)))
 	        {
                 ZipEntry theEntry;
@@ -112,33 +115,6 @@ namespace Umbraco.Core.IO
             {
                 return Attempt.Fail(virtualPath, ex);
             }
-        }
-
-	    [Obsolete("Use Umbraco.Web.Templates.TemplateUtilities.ResolveUrlsFromTextString instead, this method on this class will be removed in future versions")]
-        internal static string ResolveUrlsFromTextString(string text)
-        {
-            if (UmbracoConfig.For.UmbracoSettings().Content.ResolveUrlsFromTextString)
-            {				
-				using (DisposableTimer.DebugDuration(typeof(IOHelper), "ResolveUrlsFromTextString starting", "ResolveUrlsFromTextString complete"))
-				{
-					// find all relative urls (ie. urls that contain ~)
-					var tags = ResolveUrlPattern.Matches(text);
-					
-					foreach (Match tag in tags)
-					{						
-						string url = "";
-						if (tag.Groups[1].Success)
-							url = tag.Groups[1].Value;
-
-						if (String.IsNullOrEmpty(url) == false)
-						{
-							string resolvedUrl = (url.Substring(0, 1) == "/") ? ResolveUrl(url.Substring(1)) : ResolveUrl(url);
-							text = text.Replace(url, resolvedUrl);
-						}
-					}
-				}
-            }
-            return text;
         }
 
         public static string MapPath(string path, bool useHttpContext)
@@ -255,20 +231,6 @@ namespace Umbraco.Core.IO
         }
 
         /// <summary>
-        /// Validates that the current filepath matches one of several directories where the user is allowed to edit a file.
-        /// </summary>
-        /// <param name="filePath">The filepath to validate.</param>
-        /// <param name="validDirs">The valid directories.</param>
-        /// <returns>True, if the filepath is valid, else an exception is thrown.</returns>
-        /// <exception cref="FileSecurityException">The filepath is invalid.</exception>
-        internal static bool ValidateEditPath(string filePath, IEnumerable<string> validDirs)
-        {
-            if (VerifyEditPath(filePath, validDirs) == false)
-           throw new FileSecurityException(String.Format("The filepath '{0}' is not within an allowed directory for this type of files", filePath.Replace(MapPath(SystemDirectories.Root), "")));
-            return true;
-        }
-
-        /// <summary>
         /// Verifies that the current filepath has one of several authorized extensions.
         /// </summary>
         /// <param name="filePath">The filepath to validate.</param>
@@ -347,7 +309,7 @@ namespace Umbraco.Core.IO
             var debugFolder = Path.Combine(binFolder, "debug");
             if (Directory.Exists(debugFolder))
                 return debugFolder;
-#endif   
+#endif
             var releaseFolder = Path.Combine(binFolder, "release");
             if (Directory.Exists(releaseFolder))
                 return releaseFolder;
@@ -382,7 +344,7 @@ namespace Umbraco.Core.IO
 
 	    public static void EnsurePathExists(string path)
 	    {
-	        var absolutePath = IOHelper.MapPath(path);
+	        var absolutePath = MapPath(path);
 	        if (Directory.Exists(absolutePath) == false)
 	            Directory.CreateDirectory(absolutePath);
 	    }
@@ -390,14 +352,58 @@ namespace Umbraco.Core.IO
 	    public static void EnsureFileExists(string path, string contents)
 	    {
 	        var absolutePath = IOHelper.MapPath(path);
-	        if (File.Exists(absolutePath) == false)
+	        if (File.Exists(absolutePath)) return;
+
+	        using (var writer = File.CreateText(absolutePath))
 	        {
-                using (var writer = File.CreateText(absolutePath))
-                {
-                    writer.Write(contents);
-                }
+	            writer.Write(contents);
 	        }
-	            
 	    }
+
+        /// <summary>
+        /// Deletes all files passed in.
+        /// </summary>
+        /// <param name="files"></param>
+        /// <param name="onError"></param>
+        /// <returns></returns>
+        internal static bool DeleteFiles(IEnumerable<string> files, Action<string, Exception> onError = null)
+        {
+            //ensure duplicates are removed
+            files = files.Distinct();
+
+            var allsuccess = true;
+
+            var fs = FileSystemProviderManager.Current.GetFileSystemProvider<MediaFileSystem>();
+            Parallel.ForEach(files, file =>
+            {
+                try
+                {
+                    if (file.IsNullOrWhiteSpace()) return;
+
+                    var relativeFilePath = fs.GetRelativePath(file);
+                    if (fs.FileExists(relativeFilePath) == false) return;
+
+                    var parentDirectory = Path.GetDirectoryName(relativeFilePath);
+
+                    // don't want to delete the media folder if not using directories.
+                    if (UmbracoConfig.For.UmbracoSettings().Content.UploadAllowDirectories && parentDirectory != fs.GetRelativePath("/"))
+                    {
+                        //issue U4-771: if there is a parent directory the recursive parameter should be true
+                        fs.DeleteDirectory(parentDirectory, String.IsNullOrEmpty(parentDirectory) == false);
+                    }
+                    else
+                    {
+                        fs.DeleteFile(file, true);
+                    }
+                }
+                catch (Exception e)
+                {
+                    onError?.Invoke(file, e);
+                    allsuccess = false;
+                }
+            });
+
+            return allsuccess;
+        }
     }
 }

@@ -192,7 +192,8 @@ namespace Umbraco.Web.WebServices
                     new
                     {
                         path = syncPath,
-                        contents = t.Design
+                        contents = t.Design,
+                        alias = t.Alias // might have been updated!
                     });
             }
             catch (Exception ex)
@@ -200,6 +201,12 @@ namespace Umbraco.Web.WebServices
                 return Failed(Services.TextService.Localize("speechBubbles/templateErrorText"), Services.TextService.Localize("speechBubbles/templateErrorHeader"), ex);
             }
         }
+
+        //[HttpPost]
+        //public JsonResult SaveXslt(string fileName, string oldName, string fileContents, bool ignoreDebugging)
+        //{
+
+        //}
 
         [HttpPost]
         public JsonResult SaveScript(string filename, string oldName, string contents)

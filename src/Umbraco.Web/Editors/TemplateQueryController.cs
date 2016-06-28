@@ -18,7 +18,6 @@ namespace Umbraco.Web.Editors
     /// The API controller used for building content queries within the template
     /// </summary>
     [PluginController("UmbracoApi")]
-    [DisableBrowserCache]
     [JsonCamelCaseFormatter]
     public class TemplateQueryController : UmbracoAuthorizedJsonController
     {
@@ -289,7 +288,7 @@ namespace Umbraco.Web.Editors
         public IEnumerable<ContentTypeModel> GetContentTypes()
         {
             var contentTypes =
-                ApplicationContext.Services.ContentTypeService.GetAllContentTypes()
+                ApplicationContext.Services.ContentTypeService.GetAll()
                     .Select(x => new ContentTypeModel() { Alias = x.Alias, Name = x.Name })
                     .OrderBy(x => x.Name).ToList();
             contentTypes.Insert(0, new ContentTypeModel() { Alias = string.Empty, Name = "Everything" });

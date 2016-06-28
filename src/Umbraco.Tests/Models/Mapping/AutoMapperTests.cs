@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using AutoMapper;
 using Moq;
 using NUnit.Framework;
+using Umbraco.Core.Cache;
 using Umbraco.Core.Logging;
+using Umbraco.Core.Manifest;
 using Umbraco.Core.PropertyEditors;
 using Umbraco.Tests.TestHelpers;
 
@@ -20,14 +23,15 @@ namespace Umbraco.Tests.Models.Mapping
         protected override void FreezeResolution()
         {
             Func<IEnumerable<Type>> typeListProducerList = Enumerable.Empty<Type>;
-            var propertyEditorResolver = new Mock<PropertyEditorResolver>(
-                //ctor args
-                Mock.Of<IServiceProvider>(),
-                Mock.Of<ILogger>(),
+            var propertyEditorResolver = new PropertyEditorResolver(
+                Container,
+                Logger,
                 typeListProducerList,
-                Umbraco.Core.CacheHelper.CreateDisabledCacheHelper().RuntimeCache);
+                new ManifestBuilder(
+                    CacheHelper.CreateDisabledCacheHelper().RuntimeCache,
+                    new ManifestParser(Logger, new DirectoryInfo(TestHelper.CurrentAssemblyDirectory), CacheHelper.CreateDisabledCacheHelper().RuntimeCache)));
 
-            PropertyEditorResolver.Current = propertyEditorResolver.Object;
+            PropertyEditorResolver.Current = propertyEditorResolver;
 
             base.FreezeResolution();
         }

@@ -25,9 +25,30 @@ namespace Umbraco.Web.Security.Identity
     public static class AppBuilderExtensions
     {
         /// <summary>
+        /// Called at the end of configuring middleware
+        /// </summary>
+        /// <param name="app"></param>
+        /// <remarks>
+        /// This could be used for something else in the future - maybe to inform Umbraco that middleware is done/ready, but for
+        /// now this is used to raise the custom event
+        /// 
+        /// This is an extension method in case developer entirely replace the UmbracoDefaultOwinStartup class, in which case they will
+        /// need to ensure they call this extension method in their startup class.
+        /// 
+        /// TODO: Move this method in v8, it doesn't belong in this namespace/extension class
+        /// </remarks>
+        public static void FinalizeMiddlewareConfiguration(this IAppBuilder app)
+        {
+            UmbracoDefaultOwinStartup.OnMiddlewareConfigured(new OwinMiddlewareConfiguredEventArgs(app));
+        }
+
+        /// <summary>
         /// Sets the OWIN logger to use Umbraco's logging system
         /// </summary>
         /// <param name="app"></param>
+        /// <remarks>
+        /// TODO: Move this method in v8, it doesn't belong in this namespace/extension class
+        /// </remarks>
         public static void SetUmbracoLoggerFactory(this IAppBuilder app)
         {
             app.SetLoggerFactory(new OwinLoggerFactory());
@@ -51,6 +72,7 @@ namespace Umbraco.Web.Security.Identity
                 (options, owinContext) => BackOfficeUserManager.Create(
                     options,
                     appContext.Services.UserService,
+                    appContext.Services.MemberTypeService,
                     appContext.Services.ExternalLoginService,
                     userMembershipProvider));
 
@@ -276,15 +298,16 @@ namespace Umbraco.Web.Security.Identity
                 var authOptions = CreateCookieAuthOptions();                
                 app.Use(typeof(PreviewAuthenticationMiddleware),  authOptions);
 
+                //This middleware must execute at least on PostAuthentication, by default it is on Authorize
+                // The middleware needs to execute after the RoleManagerModule executes which is during PostAuthenticate, 
+                // currently I've had 100% success with ensuring this fires after RoleManagerModule even if this is set
+                // to PostAuthenticate though not sure if that's always a guarantee so by default it's Authorize.
                 if (stage < PipelineStage.PostAuthenticate)
                 {
                     throw new InvalidOperationException("The stage specified for UseUmbracoPreviewAuthentication must be greater than or equal to " + PipelineStage.PostAuthenticate);
                 }
 
-                //Marks the above middlewares to execute on PostAuthenticate
-                //NOTE: The above middleware needs to execute after the RoleManagerModule executes which is also during PostAuthenticate, 
-                // currently I've had 100% success with ensuring this fires after RoleManagerModule though not sure if that's always a
-                // guarantee.
+                
                 app.UseStageMarker(stage);
             }
 

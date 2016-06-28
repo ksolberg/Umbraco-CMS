@@ -416,11 +416,10 @@ namespace umbraco.cms.businesslogic
                     var lang = Language.GetByCultureCode(Thread.CurrentThread.CurrentCulture.Name);
                     if (lang != null)
                     {
-                        if (Dictionary.DictionaryItem.hasKey(_description.Substring(1, _description.Length - 1)))
+                        if (ApplicationContext.Current.Services.LocalizationService.DictionaryItemExists(_description.Substring(1, _description.Length - 1)))                        
                         {
-                            var di =
-                                new Dictionary.DictionaryItem(_description.Substring(1, _description.Length - 1));
-                            return di.Value(lang.id);
+                            var di = ApplicationContext.Current.Services.LocalizationService.GetDictionaryItemByKey(_description.Substring(1, _description.Length - 1));
+                            return di.GetTranslatedValue(lang.id);
                         }
                     }
 
@@ -495,10 +494,11 @@ namespace umbraco.cms.businesslogic
                 var lang = Language.GetByCultureCode(Thread.CurrentThread.CurrentCulture.Name);
                 if (lang != null)
                 {
-                    if (Dictionary.DictionaryItem.hasKey(tempText.Substring(1, tempText.Length - 1)))
+
+                    if (ApplicationContext.Current.Services.LocalizationService.DictionaryItemExists(tempText.Substring(1, tempText.Length - 1)))
                     {
-                        var di = new Dictionary.DictionaryItem(tempText.Substring(1, tempText.Length - 1));
-                        return di.Value(lang.id);
+                        var di = ApplicationContext.Current.Services.LocalizationService.GetDictionaryItemByKey(tempText.Substring(1, tempText.Length - 1));
+                        return di.GetTranslatedValue(lang.id);
                     }
                 }
 
@@ -854,14 +854,7 @@ namespace umbraco.cms.businesslogic
         {
             return _description;
         }
-        /// <summary>
-        /// Used to persist object changes to the database. In Version3.0 it's just a stub for future compatibility
-        /// </summary>
-        public override void Save()
-        {
-            base.Save();
-        }
-
+  
         /// <summary>
         /// Retrieve a list of all ContentTypes
         /// </summary>
@@ -1172,11 +1165,11 @@ namespace umbraco.cms.businesslogic
             {
                 if (nodeObjectType == new Guid(Constants.ObjectTypes.DocumentType))
                 {
-                    return ApplicationContext.Current.Services.ContentTypeService.GetContentType;
+                    return ApplicationContext.Current.Services.ContentTypeService.Get;
                 }
                 if (nodeObjectType == new Guid(Constants.ObjectTypes.MediaType))
                 {
-                    return ApplicationContext.Current.Services.ContentTypeService.GetMediaType;
+                    return ApplicationContext.Current.Services.MediaTypeService.Get;
                 }
                 if (nodeObjectType == new Guid(Constants.ObjectTypes.MemberType))
                 {
@@ -1184,7 +1177,8 @@ namespace umbraco.cms.businesslogic
                 }
 
                 //default to content
-                return ApplicationContext.Current.Services.ContentTypeService.GetContentType;
+                // should throw!
+                return ApplicationContext.Current.Services.ContentTypeService.Get;
             }
         }
 
@@ -1263,27 +1257,6 @@ namespace umbraco.cms.businesslogic
             */
         }
 
-        private static void PopulateMasterContentTypes(PropertyType pt, int docTypeId)
-        {
-            foreach (var docType in DocumentType.GetAllAsList())
-            {
-                //TODO: Check for multiple references (mixins) not causing endless loops!
-                if (docType.MasterContentTypes.Contains(docTypeId))
-                {
-                    PopulatePropertyData(pt, docType.Id);
-                    PopulateMasterContentTypes(pt, docType.Id);
-                }
-            }
-        }
-
-        private static void PopulatePropertyData(PropertyType pt, int contentTypeId)
-        {
-            // NH: PropertyTypeId inserted directly into SQL instead of as a parameter for SQL CE 4 compatibility
-            SqlHelper.ExecuteNonQuery(
-                                      "insert into cmsPropertyData (contentNodeId, versionId, propertyTypeId) select contentId, versionId, " + pt.Id + " from cmsContent inner join cmsContentVersion on cmsContent.nodeId = cmsContentVersion.contentId where contentType = @contentTypeId",
-                                      SqlHelper.CreateParameter("@contentTypeId", contentTypeId));
-        }
-
         #endregion
 
         #region Public TabI Interface
@@ -1343,12 +1316,6 @@ namespace umbraco.cms.businesslogic
             /// Method for moving the tab up
             /// </summary>
             void MoveUp();
-
-            /// <summary>
-            /// Method for retrieving the original, non processed name from the db
-            /// </summary>
-            /// <returns>The original, non processed name from the db</returns>
-            string GetRawCaption();
 
             /// <summary>
             /// Method for moving the tab down
@@ -1501,7 +1468,11 @@ namespace umbraco.cms.businesslogic
                     var lang = Language.GetByCultureCode(Thread.CurrentThread.CurrentCulture.Name);
                     if (lang != null)
                     {
-                        return new Dictionary.DictionaryItem(tempCaption.Substring(1, tempCaption.Length - 1)).Value(lang.id);
+                        if (ApplicationContext.Current.Services.LocalizationService.DictionaryItemExists(tempCaption.Substring(1, tempCaption.Length - 1)))
+                        {
+                            var di = ApplicationContext.Current.Services.LocalizationService.GetDictionaryItemByKey(tempCaption.Substring(1, tempCaption.Length - 1));
+                            return di.GetTranslatedValue(lang.id);
+                        }
                     }
                     return "[" + tempCaption + "]";
                 }
@@ -1658,10 +1629,10 @@ namespace umbraco.cms.businesslogic
                     var lang = Language.GetByCultureCode(Thread.CurrentThread.CurrentCulture.Name);
                     if (lang != null)
                     {
-                        if (Dictionary.DictionaryItem.hasKey(_caption.Substring(1, _caption.Length - 1)))
+                        if (ApplicationContext.Current.Services.LocalizationService.DictionaryItemExists(_caption.Substring(1, _caption.Length - 1)))
                         {
-                            var di = new Dictionary.DictionaryItem(_caption.Substring(1, _caption.Length - 1));
-                            return di.Value(lang.id);
+                            var di = ApplicationContext.Current.Services.LocalizationService.GetDictionaryItemByKey(_caption.Substring(1, _caption.Length - 1));
+                            return di.GetTranslatedValue(lang.id);                            
                         }
                     }
 

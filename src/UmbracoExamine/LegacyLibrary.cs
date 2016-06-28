@@ -4,11 +4,11 @@ using System.Xml.XPath;
 
 namespace UmbracoExamine
 {
-	/// <summary>
-	/// This is only used for backward compatibility to get access to the umbraco.library object but this needs to be done
-	/// via reflection because of the circular reference we have between Umbraco.Web and UmbracoExamine. 
-	/// </summary>
-	internal static class LegacyLibrary
+    /// <summary>
+    /// This is only used for backward compatibility to get access to the umbraco.library object but this needs to be done
+    /// via reflection because of the circular reference we have between Umbraco.Web and UmbracoExamine. 
+    /// </summary>
+    internal static class LegacyLibrary
 	{
 		private static volatile Type _libraryType;
 		private static readonly object Locker = new object();
@@ -35,18 +35,7 @@ namespace UmbracoExamine
 				return _libraryType;
 			}
 		}
-
-		internal static XPathNodeIterator GetXmlNodeById(string id)
-		{
-			var meth = LibraryType.GetMethod("GetXmlNodeById", BindingFlags.Public | BindingFlags.Static);
-			return (XPathNodeIterator)meth.Invoke(null, new object[] { id });
-		}
-
-		internal static XPathNodeIterator GetMember(int id)
-		{
-			var meth = LibraryType.GetMethod("GetMember", BindingFlags.Public | BindingFlags.Static);
-			return (XPathNodeIterator)meth.Invoke(null, new object[] { id });
-		}
+        
 
 		internal static XPathNodeIterator GetXmlNodeByXPath(string xpathQuery)
 		{

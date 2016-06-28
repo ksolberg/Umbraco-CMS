@@ -41,6 +41,7 @@ using Content = umbraco.cms.businesslogic.Content;
 using Macro = umbraco.cms.businesslogic.macro.Macro;
 using MacroErrorEventArgs = Umbraco.Core.Events.MacroErrorEventArgs;
 using System.Linq;
+using Umbraco.Core.Xml;
 using File = System.IO.File;
 using Member = umbraco.cms.businesslogic.member.Member;
 
@@ -1236,9 +1237,8 @@ namespace umbraco
 		internal PartialViewMacroResult LoadPartialViewMacro(MacroModel macro)
         {
 			var retVal = new PartialViewMacroResult();
-			IMacroEngine engine = null;
+			var engine = new PartialViewMacroEngine();
 			
-			engine = MacroEngineFactory.GetEngine(PartialViewMacroEngine.EngineName);
             var ret = engine.Execute(macro, UmbracoContext.Current.PublishedContentRequest.PublishedContent);
             
 			retVal.Result = ret;
@@ -1400,7 +1400,7 @@ namespace umbraco
             //Trace out to profiling... doesn't actually profile, just for informational output.
             if (excludeProfiling == false)
             {
-                using (ApplicationContext.Current.ProfilingLogger.TraceDuration<macro>(string.Format("{0}", message)))
+                using (ApplicationContext.Current.ProfilingLogger.DebugDuration<macro>(string.Format("{0}", message)))
                 {
                 }
             }

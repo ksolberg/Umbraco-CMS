@@ -103,7 +103,7 @@ namespace Umbraco.Tests.Services
         public void Creating_100_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 100);
 
             // Act
@@ -122,7 +122,7 @@ namespace Umbraco.Tests.Services
         public void Creating_1000_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 1000);
 
             // Act
@@ -141,18 +141,18 @@ namespace Umbraco.Tests.Services
         public void Getting_100_Uncached_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 100);
             ServiceContext.ContentService.Save(pages, 0);
 
-            var provider = new PetaPocoUnitOfWorkProvider(Logger);
-            var unitOfWork = provider.GetUnitOfWork();
-
-            using (var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver))
-            using (var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, MappingResolver))
-            using (var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, tRepository, MappingResolver))
-            using (var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver))
+            var provider = TestObjects.GetDatabaseUnitOfWorkProvider(Logger);
+            using (var unitOfWork = provider.CreateUnitOfWork())
             {
+                var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver);
+                var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, MappingResolver);
+                var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, tRepository, MappingResolver);
+                var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver);
+
                 // Act
                 Stopwatch watch = Stopwatch.StartNew();
                 var contents = repository.GetAll();
@@ -173,17 +173,18 @@ namespace Umbraco.Tests.Services
         public void Getting_1000_Uncached_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 1000);
             ServiceContext.ContentService.Save(pages, 0);
 
-            var provider = new PetaPocoUnitOfWorkProvider(Logger);
-            var unitOfWork = provider.GetUnitOfWork();
-            using (var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver))
-            using (var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, MappingResolver))
-            using (var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, tRepository, MappingResolver))
-            using (var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver))
+            var provider = TestObjects.GetDatabaseUnitOfWorkProvider(Logger);
+            using (var unitOfWork = provider.CreateUnitOfWork())
             {
+                var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver);
+                var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, MappingResolver);
+                var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, tRepository, MappingResolver);
+                var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver);
+
                 // Act
                 Stopwatch watch = Stopwatch.StartNew();
                 var contents = repository.GetAll();
@@ -202,18 +203,17 @@ namespace Umbraco.Tests.Services
         public void Getting_100_Cached_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 100);
             ServiceContext.ContentService.Save(pages, 0);
 
-            var provider = new PetaPocoUnitOfWorkProvider(Logger);
-            var unitOfWork = provider.GetUnitOfWork();
-
-            using (var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver))
-            using (var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, MappingResolver))
-            using (var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, tRepository, MappingResolver))
-            using (var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver))
+            var provider = TestObjects.GetDatabaseUnitOfWorkProvider(Logger);
+            using (var unitOfWork = provider.CreateUnitOfWork())
             {
+                var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver);
+                var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, MappingResolver);
+                var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, tRepository, MappingResolver);
+                var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver);
 
                 // Act
                 var contents = repository.GetAll();
@@ -236,17 +236,17 @@ namespace Umbraco.Tests.Services
         public void Getting_1000_Cached_Items()
         {
             // Arrange
-            var contentType = ServiceContext.ContentTypeService.GetContentType(NodeDto.NodeIdSeed);
+            var contentType = ServiceContext.ContentTypeService.Get(NodeDto.NodeIdSeed);
             var pages = MockedContent.CreateTextpageContent(contentType, -1, 1000);
             ServiceContext.ContentService.Save(pages, 0);
 
-            var provider = new PetaPocoUnitOfWorkProvider(Logger);
-            var unitOfWork = provider.GetUnitOfWork();
-            using (var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver))
-            using (var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, MappingResolver))
-            using (var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, tRepository, MappingResolver))
-            using (var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, SqlSyntax, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver))
+            var provider = TestObjects.GetDatabaseUnitOfWorkProvider(Logger);
+            using (var unitOfWork = provider.CreateUnitOfWork())
             {
+                var tRepository = new TemplateRepository(unitOfWork, DisabledCache, Logger, Mock.Of<IFileSystem>(), Mock.Of<IFileSystem>(), Mock.Of<ITemplatesSection>(), MappingResolver);
+                var tagRepo = new TagRepository(unitOfWork, DisabledCache, Logger, MappingResolver);
+                var ctRepository = new ContentTypeRepository(unitOfWork, DisabledCache, Logger, tRepository, MappingResolver);
+                var repository = new ContentRepository(unitOfWork, DisabledCache, Logger, ctRepository, tRepository, tagRepo, Mock.Of<IContentSection>(), MappingResolver);
 
                 // Act
                 var contents = repository.GetAll();
