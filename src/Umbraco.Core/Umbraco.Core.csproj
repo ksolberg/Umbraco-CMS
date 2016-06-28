@@ -52,6 +52,10 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
+    <Reference Include="ImageProcessor, Version=2.4.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ImageProcessor.2.4.1.0\lib\net45\ImageProcessor.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="log4net, Version=1.2.11.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\log4net-mediumtrust.2.0.0\lib\log4net.dll</HintPath>
@@ -352,8 +356,11 @@
     <Compile Include="IApplicationEventHandler.cs" />
     <Compile Include="IDisposeOnRequestEnd.cs" />
     <Compile Include="Logging\AsyncForwardingAppenderBase.cs" />
+    <Compile Include="Logging\ImageProcessorLogger.cs" />
+    <Compile Include="Logging\IQueue.cs" />
     <Compile Include="Logging\LoggingEventContext.cs" />
     <Compile Include="Logging\LoggingEventHelper.cs" />
+    <Compile Include="Logging\RingBuffer.cs" />
     <Compile Include="MainDom.cs" />
     <Compile Include="Logging\OwinLogger.cs" />
     <Compile Include="Logging\OwinLoggerFactory.cs" />
@@ -373,6 +380,7 @@
     <Compile Include="Models\Identity\IIdentityUserLogin.cs" />
     <Compile Include="Models\IMigrationEntry.cs" />
     <Compile Include="Models\IPublishedContentWithKey.cs" />
+    <Compile Include="Models\IRedirectUrl.cs" />
     <Compile Include="Models\IServerRegistration.cs" />
     <Compile Include="Models\Mapping\MappingExpressionExtensions.cs" />
     <Compile Include="Models\MigrationEntry.cs" />
@@ -396,6 +404,7 @@
     <Compile Include="Media\Exif\ExifTag.cs" />
     <Compile Include="Media\Exif\ExifTagFactory.cs" />
     <Compile Include="Models\Rdbms\AccessRuleDto.cs" />
+    <Compile Include="Models\Rdbms\RedirectUrlDto.cs" />
     <Compile Include="Models\Rdbms\DocumentPublishedReadOnlyDto.cs" />
     <Compile Include="Models\Rdbms\ExternalLoginDto.cs" />
     <Compile Include="Models\Rdbms\MigrationDto.cs" />
@@ -415,6 +424,9 @@
     <Compile Include="Persistence\Mappers\AccessMapper.cs" />
     <Compile Include="Persistence\Mappers\DomainMapper.cs" />
     <Compile Include="Persistence\Mappers\MigrationEntryMapper.cs" />
+    <Compile Include="Persistence\Migrations\Upgrades\TargetVersionFourOneZero\AddPreviewXmlTable.cs" />
+    <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenFiveZero\EnsureServersLockObject.cs" />
+    <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenFiveZero\AddRedirectUrlTable.cs" />
     <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenFourZero\FixListViewMediaSortOrder.cs" />
     <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenFourZero\AddDataDecimalColumn.cs" />
     <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenFourZero\AddUmbracoDeployTables.cs" />
@@ -467,15 +479,18 @@
     <Compile Include="Persistence\Repositories\Interfaces\IExternalLoginRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\IMigrationEntryRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\IPublicAccessRepository.cs" />
+    <Compile Include="Persistence\Repositories\Interfaces\IRedirectUrlRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\IServerRegistrationRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\IDeleteMediaFilesRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\ITaskRepository.cs" />
     <Compile Include="Persistence\Repositories\Interfaces\ITaskTypeRepository.cs" />
     <Compile Include="Persistence\Repositories\MigrationEntryRepository.cs" />
     <Compile Include="Persistence\Repositories\PublicAccessRepository.cs" />
+    <Compile Include="Persistence\Repositories\RedirectUrlRepository.cs" />
     <Compile Include="Persistence\Repositories\TaskRepository.cs" />
     <Compile Include="Persistence\Repositories\TaskTypeRepository.cs" />
     <Compile Include="PropertyEditors\DecimalValidator.cs" />
+    <Compile Include="PropertyEditors\PropertyEditorValueTypes.cs" />
     <Compile Include="PropertyEditors\ValueConverters\GridValueConverter.cs" />
     <Compile Include="PropertyEditors\ValueConverters\DecimalValueConverter.cs" />
     <Compile Include="PropertyEditors\ValueConverters\LabelValueConverter.cs" />
@@ -490,6 +505,7 @@
     <Compile Include="Security\BackOfficeUserStore.cs" />
     <Compile Include="Security\IBackOfficeUserPasswordChecker.cs" />
     <Compile Include="Security\MembershipPasswordHasher.cs" />
+    <Compile Include="Security\EmailService.cs" />
     <Compile Include="SemVersionExtensions.cs" />
     <Compile Include="Serialization\NoTypeConverterJsonConverter.cs" />
     <Compile Include="ServiceProviderExtensions.cs" />
@@ -504,9 +520,12 @@
     <Compile Include="Persistence\Migrations\Upgrades\TargetVersionSevenThreeZero\MigrateStylesheetDataToFile.cs" />
     <Compile Include="Services\AuditService.cs" />
     <Compile Include="Services\ContentTypeServiceExtensions.cs" />
+    <Compile Include="Models\RedirectUrl.cs" />
+    <Compile Include="Services\RedirectUrlService.cs" />
     <Compile Include="Services\DomainService.cs" />
     <Compile Include="Services\ExternalLoginService.cs" />
     <Compile Include="Services\IAuditService.cs" />
+    <Compile Include="Services\IRedirectUrlService.cs" />
     <Compile Include="Services\IDomainService.cs" />
     <Compile Include="Services\IExternalLoginService.cs" />
     <Compile Include="Services\IMigrationEntryService.cs" />
