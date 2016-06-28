@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Umbraco.Core;
+using Umbraco.Core.Models;
 using Umbraco.Web.PublishedCache; // Facade
 
 namespace Umbraco.Web.Routing

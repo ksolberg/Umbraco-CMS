@@ -683,10 +683,11 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="totalRecords">Total records query would return without paging</param>
         /// <param name="orderBy">Field to order by</param>
         /// <param name="orderDirection">Direction to order by</param>
+        /// <param name="orderBySystemField">Flag to indicate when ordering by system field</param>
         /// <param name="filter">Search text filter</param>
         /// <returns>An Enumerable list of <see cref="IContent"/> objects</returns>
         public IEnumerable<IContent> GetPagedResultsByQuery(IQuery<IContent> query, long pageIndex, int pageSize, out long totalRecords,
-            string orderBy, Direction orderDirection, string filter = "")
+            string orderBy, Direction orderDirection, bool orderBySystemField, string filter = "")
         {
 
             //NOTE: This uses the GetBaseQuery method but that does not take into account the required 'newest' field which is 
@@ -705,14 +706,14 @@ namespace Umbraco.Core.Persistence.Repositories
 
             return GetPagedResultsByQuery<DocumentDto, Content>(query, pageIndex, pageSize, out totalRecords,
                 new Tuple<string, string>("cmsDocument", "nodeId"),
-                ProcessQuery, orderBy, orderDirection,
+                ProcessQuery, orderBy, orderDirection, orderBySystemField,
                 filterCallback);
 
         }
 
         // same as above but without the automatic "newest"
         internal IEnumerable<IContent> GetPagedResultsByQuery2(IQuery<IContent> query, long pageIndex, int pageSize, out long totalRecords,
-            string orderBy, Direction orderDirection, string filter = "")
+            string orderBy, Direction orderDirection, bool orderBySystemField, string filter = "")
         {
             var args = new List<object>();
             var sbWhere = new StringBuilder(); //"AND (cmsDocument.newest = 1)");
@@ -727,7 +728,7 @@ namespace Umbraco.Core.Persistence.Repositories
 
             return GetPagedResultsByQuery<DocumentDto, Content>(query, pageIndex, pageSize, out totalRecords,
                 new Tuple<string, string>("cmsDocument", "nodeId"),
-                ProcessQuery, orderBy, orderDirection,
+                ProcessQuery, orderBy, orderDirection, orderBySystemField,
                 filterCallback);
 
         }

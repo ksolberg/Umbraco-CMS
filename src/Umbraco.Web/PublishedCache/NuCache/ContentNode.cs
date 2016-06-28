@@ -93,7 +93,7 @@ namespace Umbraco.Web.PublishedCache.NuCache
             Draft = originDraft == null ? null : new PublishedContent(this, originDraft).CreateModel();
             Published = originPublished == null ? null : new PublishedContent(this, originPublished).CreateModel();
 
-            ChildContentIds = new List<int>(origin.ChildContentIds);
+            ChildContentIds = new List<int>(origin.ChildContentIds); // needs to be *another* list
         }
 
         // clone with new content type
@@ -101,7 +101,7 @@ namespace Umbraco.Web.PublishedCache.NuCache
         {
             Id = origin.Id;
             Uid = origin.Uid;
-            ContentType = origin.ContentType;
+            ContentType = contentType; // change!
             Level = origin.Level;
             Path = origin.Path;
             SortOrder = origin.SortOrder;
@@ -109,14 +109,13 @@ namespace Umbraco.Web.PublishedCache.NuCache
             CreateDate = origin.CreateDate;
             CreatorId = origin.CreatorId;
 
-            ChildContentIds = origin.ChildContentIds;
+            var originDraft = origin.Draft == null ? null : PublishedContent.UnwrapIPublishedContent(origin.Draft);
+            var originPublished = origin.Published == null ? null : PublishedContent.UnwrapIPublishedContent(origin.Published);
 
-            // ReSharper disable MergeConditionalExpression
-            var draftData = origin.Draft == null ? null : ((PublishedContent) origin.Draft)._contentData;
-            var publishedData = origin.Published == null ? null : ((PublishedContent) origin.Published)._contentData;
-            // ReSharper restore MergeConditionalExpression
+            Draft = originDraft == null ? null : new PublishedContent(this, originDraft._contentData).CreateModel();
+            Published = originPublished == null ? null : new PublishedContent(this, originPublished._contentData).CreateModel();
 
-            SetContentTypeAndData(contentType, draftData, publishedData);
+            ChildContentIds = origin.ChildContentIds; // can be the *same* list FIXME oh really?
         }
 
         // everything that is common to both draft and published versions

@@ -348,8 +348,8 @@
       <Name>umbraco.providers</Name>
     </ProjectReference>
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="Umbraco.ModelsBuilder, Version=3.0.1.92, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Umbraco.ModelsBuilder.3.0.1\lib\Umbraco.ModelsBuilder.dll</HintPath>
+    <Reference Include="Umbraco.ModelsBuilder, Version=3.0.2.93, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Umbraco.ModelsBuilder.3.0.2\lib\Umbraco.ModelsBuilder.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="UrlRewritingNet.UrlRewriter, Version=2.0.7.0, Culture=neutral, processorArchitecture=MSIL">
@@ -2240,6 +2240,9 @@
     <Content Include="Umbraco\Members\EditMemberGroup.aspx">
       <SubType>Form</SubType>
     </Content>
+    <Content Include="Umbraco\ping.aspx">
+      <SubType>Form</SubType>
+    </Content>
     <Content Include="Umbraco\publishStatus.aspx" />
     <Content Include="Umbraco\Settings\EditDictionaryItem.aspx" />
     <Content Include="Umbraco\Settings\editLanguage.aspx" />
@@ -2410,9 +2413,9 @@ xcopy "$(ProjectDir)"..\packages\SqlServerCE.4.0.0.1\x86\*.* "$(TargetDir)x86\" 
         <WebProjectProperties>
           <UseIIS>True</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>7410</DevelopmentServerPort>
+          <DevelopmentServerPort>7500</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost:7410</IISUrl>
+          <IISUrl>http://localhost:7500</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>

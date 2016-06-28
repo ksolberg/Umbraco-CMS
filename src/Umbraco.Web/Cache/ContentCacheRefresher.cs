@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Configuration;
@@ -17,7 +18,7 @@ namespace Umbraco.Web.Cache
 
         public class JsonPayload
         {
-            internal JsonPayload(int id, TreeChangeTypes changeTypes)
+            public JsonPayload(int id, TreeChangeTypes changeTypes)
             {
                 Id = id;
                 ChangeTypes = changeTypes;
@@ -29,7 +30,7 @@ namespace Umbraco.Web.Cache
 
         protected override object Deserialize(string json)
         {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<JsonPayload[]>(json);
+            return JsonConvert.DeserializeObject<JsonPayload[]>(json);
         }
 
         public JsonPayload[] GetAsPayload(object o)
@@ -57,7 +58,7 @@ namespace Umbraco.Web.Cache
         {
             get { return "ContentCacheRefresher"; }
         }
-        
+
         #endregion
 
         #region Events
@@ -155,7 +156,7 @@ namespace Umbraco.Web.Cache
             if (UmbracoConfig.For.UmbracoSettings().Content.UmbracoLibraryCacheDuration <= 0) return;
             ApplicationContext.Current.ApplicationCache.ClearCacheObjectTypes("MS.Internal.Xml.XPath.XPathSelectionIterator");
         }
-        
+
         #endregion
     }
 }

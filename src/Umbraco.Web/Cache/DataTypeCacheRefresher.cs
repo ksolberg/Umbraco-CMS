@@ -3,6 +3,7 @@ using System.Web.Script.Serialization;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
 using System.Linq;
+using Newtonsoft.Json;
 using Umbraco.Core.Models;
 using Umbraco.Web.PublishedCache;
 
@@ -17,7 +18,7 @@ namespace Umbraco.Web.Cache
 
         public class JsonPayload
         {
-            internal JsonPayload(int id, Guid uniqueId, bool removed)
+            public JsonPayload(int id, Guid uniqueId, bool removed)
             {
                 Id = id;
                 UniqueId = uniqueId;
@@ -31,7 +32,7 @@ namespace Umbraco.Web.Cache
 
         protected override object Deserialize(string json)
         {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<JsonPayload[]>(json);
+            return JsonConvert.DeserializeObject<JsonPayload[]>(json);
         }
 
         public JsonPayload[] GetAsPayload(object o)

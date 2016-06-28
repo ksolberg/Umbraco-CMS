@@ -1215,7 +1215,7 @@ WHERE cmsContentNu.nodeId IN (
             do
             {
                 // .GetPagedResultsByQuery implicitely adds (cmsDocument.newest = 1)
-                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending);
+                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending, true);
                 var items = new List<ContentNuDto>();
                 var guids = new List<Guid>();
                 foreach (var c in descendants)
@@ -1280,7 +1280,7 @@ WHERE cmsContentNu.nodeId IN (
             long total;
             do
             {
-                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending);
+                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending, true);
                 var items = descendants.Select(m => GetDto(m, true)).ToArray();
                 // ReSharper disable once RedundantArgumentDefaultValue
                 db.BulkInsertRecords(items, null, false); // run within the current transaction and do NOT commit
@@ -1336,7 +1336,7 @@ WHERE cmsContentNu.nodeId IN (
             long total;
             do
             {
-                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending);
+                var descendants = repository.GetPagedResultsByQuery(query, pageIndex++, groupSize, out total, "Path", Direction.Ascending, true);
                 var items = descendants.Select(m => GetDto(m, true)).ToArray();
                 // ReSharper disable once RedundantArgumentDefaultValue
                 db.BulkInsertRecords(items, null, false); // run within the current transaction and do NOT commit

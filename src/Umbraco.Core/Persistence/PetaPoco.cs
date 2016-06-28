@@ -24,6 +24,7 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Linq.Expressions;
+using System.Threading;
 
 namespace Umbraco.Core.Persistence
 {
@@ -345,7 +346,7 @@ namespace Umbraco.Core.Persistence
 		void CleanupTransaction()
 		{
 			OnEndTransaction();
-
+            //Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Cleanup " + _transactionCancelled);
 			if (_transactionCancelled)
 				_transaction.Rollback();
 			else

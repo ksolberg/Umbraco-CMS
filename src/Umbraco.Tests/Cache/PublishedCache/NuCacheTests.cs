@@ -21,7 +21,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
         private ILogger _logger;
 
         public override void Initialize()
-        {            
+        {
             PropertyValueConvertersResolver.Current = new PropertyValueConvertersResolver(new ActivatorServiceProvider(), Logger);
             base.Initialize();
             var logger = new Logger(new FileInfo(TestHelper.MapPathForTest("~/unit-test-log4net.config")));
@@ -35,13 +35,40 @@ namespace Umbraco.Tests.Cache.PublishedCache
         }
 
         [Test]
+        public void UpdateDataTypes()
+        {
+            var store = new ContentStore2(_logger);
+
+            var props = new[]
+                    {
+                        new PublishedPropertyType("prop1", 1, "?"),
+                    };
+            var contentType1 = new PublishedContentType(1, "ContentType1", props);
+            store.UpdateContentTypes(null, new[] { contentType1 }, null);
+
+            var kit1 = CreateContentNodeKit(1, 1, null, 1234);
+            store.Set(kit1);
+            var snap1 = store.CreateSnapshot();
+            Assert.AreSame(kit1.Node, snap1.Get(kit1.Node.Id));
+
+            store.UpdateDataTypes(new[] { 1 }, x => new PublishedContentType(x, "ContentType1", props));
+            var snap2 = store.CreateSnapshot();
+            Assert.AreNotSame(kit1.Node, snap2.Get(kit1.Node.Id)); // snap2 contains a new content node
+
+            // but both nodes have the *same* list of children, which is OK because should
+            // the list be modified (adding or removing children) then the node would be
+            // cloned anyways via CloneParent which *does* create a new list.
+            Assert.AreSame(kit1.Node.ChildContentIds, snap2.Get(kit1.Node.Id).ChildContentIds);
+        }
+
+        [Test]
         public void NewContentNotVisible()
         {
             var store = new ContentStore2(_logger);
 
             var props = new[]
                     {
-                        new PublishedPropertyType("prop1", 1, "?"), 
+                        new PublishedPropertyType("prop1", 1, "?"),
                     };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             store.UpdateContentTypes(null, new[] { contentType1 }, null);
@@ -67,7 +94,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
                     {
-                        new PublishedPropertyType("prop1", 1, "?"), 
+                        new PublishedPropertyType("prop1", 1, "?"),
                     };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             store.UpdateContentTypes(null, new[] { contentType1 }, null);
@@ -95,7 +122,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
                     {
-                        new PublishedPropertyType("prop1", 1, "?"), 
+                        new PublishedPropertyType("prop1", 1, "?"),
                     };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             var contentType2 = new PublishedContentType(2, "ContentType2", props);
@@ -141,7 +168,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
                     {
-                        new PublishedPropertyType("prop1", 1, "?"), 
+                        new PublishedPropertyType("prop1", 1, "?"),
                     };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             var contentType2 = new PublishedContentType(2, "ContentType2", props);
@@ -187,7 +214,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
             {
-                new PublishedPropertyType("prop1", 1, "?"), 
+                new PublishedPropertyType("prop1", 1, "?"),
             };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             store.UpdateContentTypes(null, new[] { contentType1 }, null);
@@ -234,7 +261,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
             {
-                new PublishedPropertyType("prop1", 1, "?"), 
+                new PublishedPropertyType("prop1", 1, "?"),
             };
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
             store.UpdateContentTypes(null, new[] { contentType1 }, null);
@@ -286,7 +313,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
             {
-                new PublishedPropertyType("prop1", 1, "?"), 
+                new PublishedPropertyType("prop1", 1, "?"),
             };
 
             var contentType1 = new PublishedContentType(1, "ContentType1", props);
@@ -358,7 +385,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
             GC.Collect();
             await store.CollectAsync();
 #endif
-            
+
             Assert.AreEqual(1, store.GenCount);
             Assert.AreEqual(2, store.SnapCount);
 
@@ -392,7 +419,7 @@ namespace Umbraco.Tests.Cache.PublishedCache
 
             var props = new[]
             {
-                new PublishedPropertyType("prop1", 1, "?"), 
+                new PublishedPropertyType("prop1", 1, "?"),
             };
 
             var contentType1 = new PublishedContentType(1, "ContentType1", props);

@@ -1,4 +1,5 @@
 ﻿using System;
+using Newtonsoft.Json;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Models;
@@ -25,7 +26,7 @@ namespace Umbraco.Web.Cache
 
         protected override object Deserialize(string json)
         {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<JsonPayload[]>(json);
+            return JsonConvert.DeserializeObject<JsonPayload[]>(json);
         }
 
         internal JsonPayload[] GetAsPayload(object o)

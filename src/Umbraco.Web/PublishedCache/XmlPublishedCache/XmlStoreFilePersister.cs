@@ -164,6 +164,12 @@ namespace Umbraco.Web.PublishedCache.XmlPublishedCache
             // http://stackoverflow.com/questions/13489065/best-practice-to-call-configureawait-for-all-server-side-code
             // http://blog.stephencleary.com/2012/07/dont-block-on-async-code.html
             // do we really need that ConfigureAwait here?
+            
+            // - In theory, no, because we are already executing on a background thread because we know it is there and
+            // there won't be any SynchronizationContext to resume to, however this is 'library' code and 
+            // who are we to say that this will never be executed in a sync context... this is best practice to be sure 
+            // it won't cause problems.
+            // .... so yes we want it.
 
             using (await _runLock.LockAsync())
             {

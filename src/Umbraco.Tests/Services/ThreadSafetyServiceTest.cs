@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -19,6 +20,7 @@ using Umbraco.Tests.TestHelpers.Entities;
 using umbraco.editorControls.tinyMCE3;
 using umbraco.interfaces;
 using Umbraco.Core.Events;
+using Umbraco.Core.Persistence.Repositories;
 
 namespace Umbraco.Tests.Services
 {
@@ -31,12 +33,12 @@ namespace Umbraco.Tests.Services
 
 		[SetUp]
 		public override void Initialize()
-		{            
+		{
 			base.Initialize();
-			
-			//we need to use our own custom IDatabaseFactory for the DatabaseContext because we MUST ensure that 
+
+			//we need to use our own custom IDatabaseFactory for the DatabaseContext because we MUST ensure that
 			//a Database instance is created per thread, whereas the default implementation which will work in an HttpContext
-			//threading environment, or a single apartment threading environment will not work for this test because 
+			//threading environment, or a single apartment threading environment will not work for this test because
 			//it is multi-threaded.
 			_dbFactory = new PerThreadDatabaseFactory(Logger);
 			//overwrite the local object
@@ -45,7 +47,7 @@ namespace Umbraco.Tests.Services
             //disable cache
 		    var cacheHelper = CacheHelper.CreateDisabledCacheHelper();
 
-			//here we are going to override the ServiceContext because normally with our test cases we use a 
+			//here we are going to override the ServiceContext because normally with our test cases we use a
 			//global Database object but this is NOT how it should work in the web world or in any multi threaded scenario.
 			//we need a new Database object for each thread.
             var repositoryFactory = new RepositoryFactory(cacheHelper, Logger, SqlSyntax, SettingsForTests.GenerateMockSettings());
@@ -53,9 +55,9 @@ namespace Umbraco.Tests.Services
 		    var evtMsgs = new TransientMessagesFactory();
 		    ApplicationContext.Services = new ServiceContext(
                 repositoryFactory,
-                _uowProvider, 
-                new FileUnitOfWorkProvider(), 
-                cacheHelper, 
+                _uowProvider,
+                new FileUnitOfWorkProvider(),
+                cacheHelper,
                 Logger,
                 evtMsgs);
 
@@ -74,10 +76,223 @@ namespace Umbraco.Tests.Services
 			base.TearDown();
 		}
 
-		/// <summary>
-		/// Used to track exceptions during multi-threaded tests, volatile so that it is not locked in CPU registers.
-		/// </summary>
-		private volatile Exception _error = null;
+        [Test]
+        public void SqlCeTest1()
+        {
+            var db1 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var db2 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var t1 = db1.GetTransaction(IsolationLevel.RepeatableRead);
+            var t2 = db2.GetTransaction(IsolationLevel.RepeatableRead);
+
+            // if it's the same then deadlock else works
+            db1.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+            db2.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-334");
+
+            // inserting another node works
+            db2.Execute("INSERT INTO umbracoNode (Text, ParentId, Level, sortOrder, Path) VALUES ('test', -1, 1, 0, '-1,')");
+
+            t1.Complete();
+            t2.Complete();
+        }
+
+        [Test]
+        public void SqlCeTest1a()
+        {
+            var db1 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var db2 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var t1 = db1.GetTransaction(IsolationLevel.RepeatableRead);
+            var t2 = db2.GetTransaction(IsolationLevel.RepeatableRead);
+
+            // if it's the same then deadlock else works
+            Console.WriteLine("Lock 1");
+            db1.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+            WriteLockInfo();
+
+            /*
+            Lock 1
+            > 2 DB  ix   GRANT
+            > 2 TAB  ix umbracoNode 1029 GRANT
+            > 2 PAG (data) 1032 ix umbracoNode 1029 GRANT
+            > 2 RID 1032:33 x umbracoNode 1029 GRANT
+            */
+
+            Console.WriteLine("Lock 2");
+            var t = new Thread(() =>
+            {
+                Thread.Sleep(500);
+                WriteLockInfo();
+                Thread.Sleep(500);
+                t1.Complete();
+            });
+            t.Start();
+            db2.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+
+            /*
+            Lock 2
+            > 2 DB  ix   GRANT
+            > 2 TAB  ix umbracoNode 1029 GRANT
+            > 2 PAG (data) 1032 ix umbracoNode 1029 GRANT
+            > 2 RID 1032:33 x umbracoNode 1029 GRANT ---------------- exclusive lock on row
+            > 4 DB  iu   GRANT
+            > 4 TAB  iu umbracoNode 1029 GRANT
+            > 4 PAG (data) 1032 iu umbracoNode 1029 GRANT
+            > 4 PAG (idx) 1031 s umbracoNode 1029 GRANT
+            > 4 RID 1032:33 u umbracoNode 1029 WAIT ----------------- waiting to update the row
+            > 4 MD  Sch-s umbracoNode 1029 GRANT
+            */
+
+            Console.WriteLine("Lock 3");
+            WriteLockInfo();
+
+            /*
+            Lock 3
+            > 4 DB  ix   GRANT
+            > 4 TAB  ix umbracoNode 1029 GRANT
+            > 4 PAG (data) 1032 ix umbracoNode 1029 GRANT
+            > 4 RID 1032:33 x umbracoNode 1029 GRANT ---------------- exclusive lock on row
+            */
+        }
+
+        [Test]
+        public void SqlCeTest2()
+        {
+            var db1 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var db2 = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+            var t1 = db1.GetTransaction(IsolationLevel.RepeatableRead);
+            var t2 = db2.GetTransaction(IsolationLevel.RepeatableRead);
+
+            // if it's the same then deadlock else works
+            db1.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+            db2.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-334");
+
+            // inserting another node works
+            db2.Execute("INSERT INTO umbracoNode (Text, ParentId, Level, sortOrder, Path) VALUES ('test', -1, 1, 0, '-1,')");
+
+            t1.Complete();
+
+            // has been released so now it works
+            db2.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+            t2.Complete();
+        }
+
+        [Test]
+        public void SqlCeTest3()
+        {
+            const int threadCount = 20; // with 20 ... they can all fail?!
+            const int timeout = 32000;
+
+            var threads = new List<Thread>();
+            var exceptions = new List<Exception>();
+            var tt = new Thread(() =>
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    Console.WriteLine("Locks:");
+                    WriteLockInfo();
+                    Thread.Sleep(500);
+                }
+            });
+            tt.Start();
+            for (var i = 0; i < threadCount; i++)
+                threads.Add(new Thread(() =>
+                {
+                    try
+                    {
+                        Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Begin.");
+                        var db = new UmbracoDatabase(Umbraco.Core.Configuration.GlobalSettings.UmbracoConnectionName, Logger);
+                        db.Execute($"SET LOCK_TIMEOUT {timeout};"); // NOT changing anything?!
+                        var t = db.GetTransaction(IsolationLevel.RepeatableRead);
+                        //db.Execute("UPDATE umbracoLock SET value = (CASE WHEN (value=1) THEN -1 ELSE 1 END) WHERE id=-333");
+                        db.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=-333");
+                        db.Execute("INSERT INTO umbracoNode (Text, ParentId, Level, sortOrder, Path) VALUES ('test', -1, 1, 0, '-1,')");
+                        t.Complete();
+                        Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Done.");
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Exception!");
+                        exceptions.Add(e);
+                    }
+                }));
+            threads.ForEach(x => x.Start());
+            threads.ForEach(x => x.Join());
+            //Assert.IsEmpty(exceptions);
+            Assert.AreEqual(0, exceptions.Count);
+        }
+
+        [Test]
+        public void SqlCeTest4()
+        {
+            var contentService = (ContentService)ServiceContext.ContentService;
+            var threads = new List<Thread>();
+            var exceptions = new List<Exception>();
+            for (var i = 0; i < 2; i++)
+                threads.Add(new Thread(() =>
+            {
+                try
+                {
+                    //ApplicationContext.Current.DatabaseContext.Database.Execute("SET LOCK_TIMEOUT 10000");
+                    Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Begin.");
+                    var content = contentService.CreateContent("test" + Guid.NewGuid(), -1, "umbTextpage", 0);
+                    Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Save.");
+                    contentService.Save(content);
+                    Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] End.");
+                    //ApplicationContext.Current.DatabaseContext.Database.CloseSharedConnection();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Exception!");
+                    exceptions.Add(e);
+                    WriteLockInfo();
+                }
+            }));
+            threads.ForEach(x => x.Start());
+            threads.ForEach(x => x.Join());
+            Thread.Sleep(4000);
+            Assert.IsEmpty(exceptions);
+        }
+
+        private void WriteLockInfo()
+        {
+            var info = ApplicationContext.Current.DatabaseContext.Database.Query<dynamic>("SELECT * FROM sys.lock_information;");
+            foreach (var row in info)
+            {
+                Console.WriteLine($"> {row.request_spid} {row.resource_type} {row.resource_description} {row.request_mode} {row.resource_table} {row.resource_table_id} {row.request_status}");
+            }
+        }
+
+        [Test]
+        public void SqlCeTest5()
+        {
+            var contentService = (ContentService)ServiceContext.ContentService;
+            var threads = new List<Thread>();
+            var exceptions = new List<Exception>();
+            for (var i = 0; i < 2; i++)
+                threads.Add(new Thread(() =>
+                {
+                    try
+                    {
+                        var content = contentService.CreateContent("test" + Guid.NewGuid(), -1, "umbTextpage", 0);
+                        contentService.Save(content);
+                        Thread.Sleep(1000);
+                        content = contentService.CreateContent("test" + Guid.NewGuid(), -1, "umbTextpage", 0);
+                        contentService.Save(content);
+                    }
+                    catch (Exception e)
+                    {
+                        //Console.WriteLine("Exception!");
+                        exceptions.Add(e);
+                    }
+                }));
+            threads.ForEach(x => x.Start());
+            threads.ForEach(x => x.Join());
+            Assert.IsEmpty(exceptions);
+        }
+
+        /// <summary>
+        /// Used to track exceptions during multi-threaded tests, volatile so that it is not locked in CPU registers.
+        /// </summary>
+        private volatile Exception _error = null;
 
 		private const int MaxThreadCount = 20;
 
@@ -86,9 +301,9 @@ namespace Umbraco.Tests.Services
 		{
 			//we will mimick the ServiceContext in that each repository in a service (i.e. ContentService) is a singleton
 			var contentService = (ContentService)ServiceContext.ContentService;
-			
+
 			var threads = new List<Thread>();
-			
+
 			Debug.WriteLine("Starting test...");
 
 			for (var i = 0; i < MaxThreadCount; i++)
@@ -97,27 +312,26 @@ namespace Umbraco.Tests.Services
 					{
 						try
 						{
-							Debug.WriteLine("Created content on thread: " + Thread.CurrentThread.ManagedThreadId);							
-							
-							//create 2 content items
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Create 1st content.");
+                            var content1 = contentService.CreateContent("test" + Guid.NewGuid(), -1, "umbTextpage", 0);
 
-                            string name1 = "test" + Guid.NewGuid();
-							var content1 = contentService.CreateContent(name1, -1, "umbTextpage", 0);
-							
-							Debug.WriteLine("Saving content1 on thread: " + Thread.CurrentThread.ManagedThreadId);
-							contentService.Save(content1);
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Save 1st content.");
+                            contentService.Save(content1);
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Saved 1st content.");
 
-							Thread.Sleep(100); //quick pause for maximum overlap!
+                            Thread.Sleep(100); //quick pause for maximum overlap!
 
-                            string name2 = "test" + Guid.NewGuid();
-							var content2 = contentService.CreateContent(name2, -1, "umbTextpage", 0);
-							Debug.WriteLine("Saving content2 on thread: " + Thread.CurrentThread.ManagedThreadId);
-							contentService.Save(content2);	
-						}
-						catch(Exception e)
-						{														
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Create 2nd content.");
+                            var content2 = contentService.CreateContent("test" + Guid.NewGuid(), -1, "umbTextpage", 0);
+
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Save 2nd content.");
+                            contentService.Save(content2);
+                            Debug.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] ({DateTime.Now.ToString("HH:mm:ss,FFF")}) Saved 2nd content.");
+                        }
+                        catch (Exception e)
+						{
 							_error = e;
-						}						
+						}
 					});
 				threads.Add(t);
 			}
@@ -141,7 +355,7 @@ namespace Umbraco.Tests.Services
 			{
 			    throw new Exception("Error!", _error);
 			}
-			
+
 		}
 
 		[Test]
@@ -205,13 +419,13 @@ namespace Umbraco.Tests.Services
 			}
 
 		}
-		
+
 		public void CreateTestData()
 		{
 			//Create and Save ContentType "umbTextpage" -> 1045
 			ContentType contentType = MockedContentTypes.CreateSimpleContentType("umbTextpage", "Textpage");
 			contentType.Key = new Guid("1D3A8E6E-2EA9-4CC1-B229-1AEE19821522");
-			ServiceContext.ContentTypeService.Save(contentType);			
+			ServiceContext.ContentTypeService.Save(contentType);
 		}
 
 		/// <summary>
@@ -226,7 +440,7 @@ namespace Umbraco.Tests.Services
 		        _logger = logger;
 		    }
 
-		    private readonly ConcurrentDictionary<int, UmbracoDatabase> _databases = new ConcurrentDictionary<int, UmbracoDatabase>(); 
+		    private readonly ConcurrentDictionary<int, UmbracoDatabase> _databases = new ConcurrentDictionary<int, UmbracoDatabase>();
 
 			public UmbracoDatabase CreateDatabase()
 			{
@@ -271,3 +485,4 @@ namespace Umbraco.Tests.Services
 
 	}
 }
+ 

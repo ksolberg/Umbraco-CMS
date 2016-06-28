@@ -18,19 +18,14 @@ namespace Umbraco.Web.Cache
 
         public class JsonPayload
         {
-            internal JsonPayload(int id, TreeChangeTypes changeTypes)
+            public JsonPayload(int id, TreeChangeTypes changeTypes)
             {
                 Id = id;
                 ChangeTypes = changeTypes;
             }
 
-            public int Id { get; set; }
+            public int Id { get; private set; }
             public TreeChangeTypes ChangeTypes { get; private set; }
-        }
-
-        internal static string Serialize(IEnumerable<JsonPayload> payloads)
-        {
-            return JsonConvert.SerializeObject(payloads.ToArray());
         }
 
         protected override object Deserialize(string json)

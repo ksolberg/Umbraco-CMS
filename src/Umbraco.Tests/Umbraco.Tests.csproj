@@ -178,6 +178,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Migrations\MigrationIssuesTests.cs" />
+    <Compile Include="Cache\RefreshersTests.cs" />
     <Compile Include="Persistence\Migrations\MigrationStartupHandlerTests.cs" />
     <Compile Include="Web\AngularIntegration\AngularAntiForgeryTests.cs" />
     <Compile Include="Web\AngularIntegration\ContentModelSerializationTests.cs" />

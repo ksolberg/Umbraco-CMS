@@ -24,7 +24,7 @@ namespace Umbraco.Web.Cache
 
         public class JsonPayload
         {
-            internal JsonPayload(string itemType, int id, ContentTypeServiceBase.ChangeTypes changeTypes)
+            public JsonPayload(string itemType, int id, ContentTypeServiceBase.ChangeTypes changeTypes)
             {
                 ItemType = itemType;
                 Id = id;

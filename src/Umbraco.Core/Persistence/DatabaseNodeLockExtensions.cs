@@ -24,8 +24,9 @@ namespace Umbraco.Core.Persistence
         {
             ValidateDatabase(database);
 
-            database.Execute("UPDATE umbracoNode SET sortOrder = (CASE WHEN (sortOrder=1) THEN -1 ELSE 1 END) WHERE id=@id",
+            var x = database.Execute("UPDATE umbracoLock SET value = (CASE WHEN (value=1) THEN -1 ELSE 1 END) WHERE id=@id",
                 new { @id = nodeId });
+            if (x != 1) throw new Exception("nothing to lock?");
         }
 
         // reading a record within a repeatable-read transaction gets a shared lock on
@@ -36,8 +37,9 @@ namespace Umbraco.Core.Persistence
         {
             ValidateDatabase(database);
 
-            database.ExecuteScalar<int>("SELECT sortOrder FROM umbracoNode WHERE id=@id",
+            var r = database.ExecuteScalar<int?>("SELECT value FROM umbracoLock WHERE id=@id",
                 new { @id = nodeId });
+            if (r == null) throw new Exception("nothing to lock?");
         }
     }
 }

@@ -355,7 +355,7 @@ namespace Umbraco.Core.Services
         public IEnumerable<IMedia> GetPagedChildren(int id, int pageIndex, int pageSize, out int totalChildren, string orderBy, Direction orderDirection, string filter = "")
         {
             long totalChildren2;
-            var ret = GetPagedChildren(id, Convert.ToInt64(pageIndex), pageSize, out totalChildren2, orderBy, orderDirection, filter);
+            var ret = GetPagedChildren(id, Convert.ToInt64(pageIndex), pageSize, out totalChildren2, orderBy, orderDirection, true, filter);
             totalChildren = Convert.ToInt32(totalChildren2);
             return ret;
         }
@@ -373,6 +373,24 @@ namespace Umbraco.Core.Services
         /// <returns>An Enumerable list of <see cref="IMedia"/> objects</returns>
         public IEnumerable<IMedia> GetPagedChildren(int id, long pageIndex, int pageSize, out long totalChildren, string orderBy, Direction orderDirection, string filter = "")
         {
+            return GetPagedChildren(id, pageIndex, pageSize, out totalChildren, orderBy, orderDirection, true, filter);
+        }
+
+        /// <summary>
+        /// Gets a collection of <see cref="IMedia"/> objects by Parent Id
+        /// </summary>
+        /// <param name="id">Id of the Parent to retrieve Children from</param>
+        /// <param name="pageIndex">Page index (zero based)</param>
+        /// <param name="pageSize">Page size</param>
+        /// <param name="totalChildren">Total records query would return without paging</param>
+        /// <param name="orderBy">Field to order by</param>
+        /// <param name="orderDirection">Direction to order by</param>
+        /// <param name="orderBySystemField">Flag to indicate when ordering by system field</param>
+        /// <param name="filter">Search text filter</param>
+        /// <returns>An Enumerable list of <see cref="IContent"/> objects</returns>
+        public IEnumerable<IMedia> GetPagedChildren(int id, long pageIndex, int pageSize, out long totalChildren,
+            string orderBy, Direction orderDirection, bool orderBySystemField, string filter)
+        {
             Mandate.ParameterCondition(pageIndex >= 0, "pageIndex");
             Mandate.ParameterCondition(pageSize > 0, "pageSize");
 
@@ -383,7 +401,7 @@ namespace Umbraco.Core.Services
             long totalChildren2 = 0;
             WithReadLocked(repository =>
             {
-                ret = repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalChildren2, orderBy, orderDirection, filter);
+                ret = repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalChildren2, orderBy, orderDirection, orderBySystemField, filter);
             });
             totalChildren = totalChildren2;
             return ret;
@@ -393,10 +411,10 @@ namespace Umbraco.Core.Services
         [EditorBrowsable(EditorBrowsableState.Never)]
         public IEnumerable<IMedia> GetPagedDescendants(int id, int pageIndex, int pageSize, out int totalChildren, string orderBy = "Path", Direction orderDirection = Direction.Ascending, string filter = "")
         {
-            long totalChildren2;
-            var ret = GetPagedDescendants(id, Convert.ToInt64(pageIndex), pageSize, out totalChildren2, orderBy, orderDirection, filter);
-            totalChildren = Convert.ToInt32(totalChildren2);
-            return ret;
+            long total;
+            var result = GetPagedDescendants(id, Convert.ToInt64(pageIndex), pageSize, out total, orderBy, orderDirection, true, filter);
+            totalChildren = Convert.ToInt32(total);
+            return result;
         }
 
         /// <summary>
@@ -409,8 +427,25 @@ namespace Umbraco.Core.Services
         /// <param name="orderBy">Field to order by</param>
         /// <param name="orderDirection">Direction to order by</param>
         /// <param name="filter">Search text filter</param>
-        /// <returns>An Enumerable list of <see cref="IMedia"/> objects</returns>
+        /// <returns>An Enumerable list of <see cref="IContent"/> objects</returns>
         public IEnumerable<IMedia> GetPagedDescendants(int id, long pageIndex, int pageSize, out long totalChildren, string orderBy = "Path", Direction orderDirection = Direction.Ascending, string filter = "")
+        {
+            return GetPagedDescendants(id, pageIndex, pageSize, out totalChildren, orderBy, orderDirection, true, filter);
+        }
+
+        /// <summary>
+        /// Gets a collection of <see cref="IMedia"/> objects by Parent Id
+        /// </summary>
+        /// <param name="id">Id of the Parent to retrieve Descendants from</param>
+        /// <param name="pageIndex">Page number</param>
+        /// <param name="pageSize">Page size</param>
+        /// <param name="totalChildren">Total records query would return without paging</param>
+        /// <param name="orderBy">Field to order by</param>
+        /// <param name="orderDirection">Direction to order by</param>
+        /// <param name="orderBySystemField">A value indicating whether the field to order by is a system field, or a user field.</param>
+        /// <param name="filter">Search text filter</param>
+        /// <returns>An Enumerable list of <see cref="IMedia"/> objects</returns>
+        public IEnumerable<IMedia> GetPagedDescendants(int id, long pageIndex, int pageSize, out long totalChildren, string orderBy, Direction orderDirection, bool orderBySystemField, string filter)
         {
             Mandate.ParameterCondition(pageIndex >= 0, "pageIndex");
             Mandate.ParameterCondition(pageSize > 0, "pageSize");
@@ -424,7 +459,7 @@ namespace Umbraco.Core.Services
             long totalChildren2 = 0;
             WithReadLocked(repository =>
             {
-                ret = repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalChildren2, orderBy, orderDirection, filter);
+                ret = repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalChildren2, orderBy, orderDirection, orderBySystemField, filter);
             });
             totalChildren = totalChildren2;
             return ret;
