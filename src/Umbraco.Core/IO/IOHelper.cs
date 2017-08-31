@@ -4,11 +4,11 @@ using System.Globalization;
 using System.Reflection;
 using System.IO;
 using System.Configuration;
+using System.Linq;
 using System.Web;
 using System.Text.RegularExpressions;
 using System.Web.Hosting;
 using Umbraco.Core.Configuration;
-using Umbraco.Core.Logging;
 
 namespace Umbraco.Core.IO
 {
@@ -97,6 +97,8 @@ namespace Umbraco.Core.IO
 
         public static string MapPath(string path, bool useHttpContext)
         {
+            if (path == null) throw new ArgumentNullException("path");
+
             // Check if the path is already mapped
             if ((path.Length >= 2 && path[1] == Path.VolumeSeparatorChar)
                 || path.StartsWith(@"\\")) //UNC Paths start with "\\". If the site is running off a network drive mapped paths will look like "\\Whatever\Boo\Bar"
@@ -351,7 +353,54 @@ namespace Umbraco.Core.IO
                     writer.Write(contents);
                 }
 	        }
-	            
-	    }
+
+        }
+
+        /// <summary>
+        /// Checks if a given path is a full path including drive letter
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        // From: http://stackoverflow.com/a/35046453/5018
+        internal static bool IsFullPath(this string path)
+        {
+            return string.IsNullOrWhiteSpace(path) == false
+                && path.IndexOfAny(Path.GetInvalidPathChars().ToArray()) == -1
+                && Path.IsPathRooted(path)
+                && Path.GetPathRoot(path).Equals(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) == false;
+        }
+
+        /// <summary>
+        /// Get properly formatted relative path from an existing absolute or relative path
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        internal static string GetRelativePath(this string path)
+        {
+            if (path.IsFullPath())
+            {
+                var rootDirectory = GetRootDirectorySafe();
+                var relativePath = path.ToLowerInvariant().Replace(rootDirectory.ToLowerInvariant(), string.Empty);
+                path = relativePath;
+            }
+
+            return path.EnsurePathIsApplicationRootPrefixed();
+        }
+
+        /// <summary>
+        /// Ensures that a path has `~/` as prefix
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        internal static string EnsurePathIsApplicationRootPrefixed(this string path)
+        {
+            if (path.StartsWith("~/"))
+                return path;
+            if (path.StartsWith("/") == false && path.StartsWith("\\") == false)
+                path = string.Format("/{0}", path);
+            if (path.StartsWith("~") == false)
+                path = string.Format("~{0}", path);
+            return path;
+        }
     }
 }

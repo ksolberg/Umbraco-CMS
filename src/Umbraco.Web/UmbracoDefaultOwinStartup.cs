@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Web;
 using Microsoft.Owin;
-using Microsoft.Owin.Extensions;
-using Microsoft.Owin.Logging;
 using Owin;
 using Umbraco.Core;
-using Umbraco.Core.Logging;
 using Umbraco.Core.Security;
 using Umbraco.Web;
 using Umbraco.Web.Security.Identity;
@@ -41,12 +37,7 @@ namespace Umbraco.Web
         protected virtual void ConfigureServices(IAppBuilder app)
         {
             app.SetUmbracoLoggerFactory();
-
-            //Configure the Identity user manager for use with Umbraco Back office 
-            // (EXPERT: an overload accepts a custom BackOfficeUserStore implementation)
-            app.ConfigureUserManagerForUmbracoBackOffice(
-                ApplicationContext,
-                Core.Security.MembershipProviderExtensions.GetUsersMembershipProvider().AsUmbracoMembershipProvider());
+            ConfigureUmbracoUserManager(app);
         }
 
         /// <summary>
@@ -61,11 +52,24 @@ namespace Umbraco.Web
                 .UseUmbracoBackOfficeCookieAuthentication(ApplicationContext, PipelineStage.Authenticate)
                 .UseUmbracoBackOfficeExternalCookieAuthentication(ApplicationContext, PipelineStage.Authenticate)
                 .UseUmbracoPreviewAuthentication(ApplicationContext, PipelineStage.Authorize)
+                .UseSignalR()
                 .FinalizeMiddlewareConfiguration();
         }
 
         /// <summary>
-        /// Raised when the middelware has been configured
+        /// Configure the Identity user manager for use with Umbraco Back office
+        /// </summary>
+        /// <param name="app"></param>
+        protected virtual void ConfigureUmbracoUserManager(IAppBuilder app)
+        {
+            // (EXPERT: an overload accepts a custom BackOfficeUserStore implementation)
+            app.ConfigureUserManagerForUmbracoBackOffice(
+                ApplicationContext,
+                Core.Security.MembershipProviderExtensions.GetUsersMembershipProvider().AsUmbracoMembershipProvider());
+        }
+
+        /// <summary>
+        /// Raised when the middleware has been configured
         /// </summary>
         public static event EventHandler<OwinMiddlewareConfiguredEventArgs> MiddlewareConfigured;
 

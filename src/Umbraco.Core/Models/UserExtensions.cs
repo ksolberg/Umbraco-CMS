@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
-using System.Threading;
-using Umbraco.Core.Models.Identity;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Models.Membership;
 using Umbraco.Core.Services;
 
@@ -15,7 +13,7 @@ namespace Umbraco.Core.Models
         /// </summary>
         /// <param name="user"></param>
         /// <param name="textService"></param>
-        /// <returns></returns>      
+        /// <returns></returns>
         public static CultureInfo GetUserCulture(this IUser user, ILocalizedTextService textService)
         {
             if (user == null) throw new ArgumentNullException("user");
@@ -37,7 +35,7 @@ namespace Umbraco.Core.Models
             catch (CultureNotFoundException)
             {
                 //return the default one
-                return CultureInfo.GetCultureInfo("en");
+                return CultureInfo.GetCultureInfo(GlobalSettings.DefaultUILanguage);
             }
         }
 
@@ -82,6 +80,20 @@ namespace Umbraco.Core.Models
             if (user == null) throw new ArgumentNullException("user");
             if (media == null) throw new ArgumentNullException("media");
             return HasPathAccess(media.Path, user.StartMediaId, Constants.System.RecycleBinMedia);
+        }
+
+
+        /// <summary>
+        /// Determines whether this user is an admin.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns>
+        /// 	<c>true</c> if this user is admin; otherwise, <c>false</c>.
+        /// </returns>
+        public static bool IsAdmin(this IUser user)
+        {
+            if (user == null) throw new ArgumentNullException("user");
+            return user.UserType.Alias == "admin";
         }
     }
 }
